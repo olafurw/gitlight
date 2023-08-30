@@ -1,21 +1,23 @@
 <script lang="ts">
 	import { open } from '@tauri-apps/api/shell';
 	import { onDestroy } from 'svelte';
-	import { Button, Tooltip } from '~/lib/components';
-	import { fetchGithub, formatRelativeDate, lightenColor } from '~/lib/helpers';
+	import { Button, Tooltip } from '$lib/components';
+	import { fetchGithub } from '$lib/features';
+	import { formatRelativeDate, getGrayscale, lightenColor } from '$lib/helpers';
 	import {
 		CheckIcon,
 		DoubleCheckIcon,
-		ExternalLinkIcon,
+		MuteIcon,
 		PinIcon,
 		PriorityDownIcon,
 		PriorityUpIcon,
 		RestoreIcon,
+		MutedIcon,
 		UnpinIcon,
 		UnreadIcon
-	} from '~/lib/icons';
-	import { githubNotifications, settings } from '~/lib/stores';
-	import type { NotificationData } from '~/lib/types';
+	} from '$lib/icons';
+	import { githubNotifications, settings } from '$lib/stores';
+	import type { NotificationData } from '$lib/types';
 	import NotificationDescription from './NotificationDescription.svelte';
 
 	export let data: NotificationData;
@@ -28,11 +30,13 @@
 		pinned,
 		done,
 		isNew,
+		muted,
 		author,
 		title,
 		description,
 		priority,
 		time,
+		type,
 		icon,
 		owner,
 		repo,
@@ -58,7 +62,7 @@
 		fetchGithub(`notifications/threads/${id}`, { method: 'PATCH' });
 	}
 
-	function handleToggle(key: 'unread' | 'pinned' | 'done') {
+	function handleToggle(key: 'unread' | 'pinned' | 'done' | 'muted') {
 		return () => {
 			$githubNotifications = $githubNotifications.map((notification) => {
 				if (notification.id !== id) return notification;
@@ -68,12 +72,16 @@
 				return { ...notification, [key]: !notification[key], isNew: false };
 			});
 
-			if (pinned) {
+			if (key === 'unread' && pinned) {
 				unread = !unread;
 			}
 
 			if (key === 'unread' && unread) {
 				markAsReadInGitHub();
+			}
+
+			if (key === 'muted') {
+				muted = !muted;
 			}
 		};
 	}
@@ -163,7 +171,10 @@
 					{/if}
 				</div>
 				{#if priority && $settings.showPriority}
-					<div class="priority {priority.value > 0 ? 'up' : 'down'}">
+					<div
+						class="priority {priority.value > 0 ? 'up' : 'down'}"
+						style:filter={getGrayscale(priority.value)}
+					>
 						{#if priority.value > 0}
 							<PriorityUpIcon />
 						{:else}
@@ -225,18 +236,20 @@
 						</Button>
 					</Tooltip>
 				{/if}
-				{#if url}
-					<Tooltip content="Open in GitHub" position="left" hover>
-						<Button secondary icon on:click={handleOpenInBrowser}>
-							<ExternalLinkIcon />
-						</Button>
-					</Tooltip>
-				{:else}
-					<Tooltip content="Cannot open in GitHub" position="left" hover>
-						<Button secondary icon disabled>
-							<ExternalLinkIcon />
-						</Button>
-					</Tooltip>
+				{#if type === 'Discussion' || type === 'Issue' || type === 'PullRequest'}
+					{#if muted}
+						<Tooltip content="Muted" position="left" hover>
+							<Button secondary icon on:click={handleToggle('muted')}>
+								<MutedIcon />
+							</Button>
+						</Tooltip>
+					{:else}
+						<Tooltip content="Mute" position="left" hover>
+							<Button secondary icon on:click={handleToggle('muted')}>
+								<MuteIcon />
+							</Button>
+						</Tooltip>
+					{/if}
 				{/if}
 			</div>
 		{/if}

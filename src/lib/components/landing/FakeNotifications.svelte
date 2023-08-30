@@ -4,8 +4,8 @@
 		MergedPullRequestIcon,
 		OpenIssueIcon,
 		OpenPullRequestIcon
-	} from '~/lib/icons';
-	import type { NotificationData } from '~/lib/types';
+	} from '$lib/icons';
+	import type { NotificationData } from '$lib/types';
 	import Notification from '../dashboard/notifications/Notification.svelte';
 
 	const common = {
@@ -16,7 +16,8 @@
 		isNew: false,
 		repoId: '',
 		ownerAvatar: '',
-		url: ''
+		url: '',
+		muted: false
 	} as const;
 
 	const commonAuthor = {

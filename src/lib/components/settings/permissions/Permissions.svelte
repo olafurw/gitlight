@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Button, ShrinkableWrapper } from '~/lib/components';
-	import { ExternalLinkIcon } from '~/lib/icons';
-	import { settings } from '~/lib/stores';
+	import { Button, ShrinkableWrapper } from '$lib/components';
+	import { ExternalLinkIcon } from '$lib/icons';
+	import { settings } from '$lib/stores';
 	import PatItem from './PatItem.svelte';
 
 	export let onExpand: () => void;
@@ -54,7 +54,8 @@
 	public repositories.
 </p>
 <p class="list-item">
-	<strong>Repository permissions</strong>: set <strong>Contents</strong>, <strong>Issues</strong>,
+	<strong>Repository permissions</strong>: set <strong>Contents</strong>,
+	<strong>Discussions</strong>, <strong>Issues</strong>,
 	<strong>Metadata</strong>
 	and <strong>Pull requests</strong> to <strong>Access: read-only</strong>.
 </p>

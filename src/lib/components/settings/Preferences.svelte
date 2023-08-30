@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { InlineSelect, Switch } from '~/lib/components';
-	import { settings } from '~/lib/stores';
-	import type { Settings } from '~/lib/types';
+	import { InlineSelect, Switch } from '$lib/components';
+	import { settings } from '$lib/stores';
+	import type { Settings } from '$lib/types';
 
 	const axisOptions: Array<Settings['notificationAxis']> = ['Auto', 'Vertical', 'Horizontal'];
 	const numberOptions: Array<Settings['notificationNumber']> = [25, 50, 75, 100];
@@ -21,10 +21,6 @@
 <Switch
 	label="Activate push notifications (only on desktop app)"
 	bind:active={$settings.activateNotifications}
-/>
-<Switch
-	label="Send push notifications for which you are the author"
-	bind:active={$settings.pushNotificationFromUser}
 />
 <Switch
 	label="Mark a notification as read when opening in the browser"

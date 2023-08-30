@@ -8,7 +8,7 @@
 	},
 	"package": {
 		"productName": "GitLight",
-		"version": "0.12.2"
+		"version": "0.13.0"
 	},
 	"tauri": {
 		"allowlist": {
@@ -60,7 +60,7 @@
 		},
 		"updater": {
 			"active": true,
-			"endpoints": ["https://gitlight.app/version/{{target}}/{{current_version}}"],
+			"endpoints": ["https://gitlight.app/version/{{target}}/{{current_version}}?arch={{arch}}"],
 			"dialog": true,
 			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFFN0Y4QzExRTAxMkYyRTEKUldUaDhoTGdFWXgvSGdnNWVFSlQ2Qy9iakRld240cVExdy9xWkdWNmMyQlpDZWZFT0pwSU1xNG0K",
 			"windows": {
@@ -76,7 +76,7 @@
 				"width": 1400,
 				"titleBarStyle": "Overlay",
 				"hiddenTitle": true,
-				"url": "/login?desktop=true"
+				"url": "/dashboard"
 			}
 		],
 		"systemTray": {

@@ -2,11 +2,12 @@
 	import { onDestroy, onMount, type ComponentType, SvelteComponent } from 'svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
-	import { IconButton, Modal, ScrollbarContainer, Separator, Tooltip } from '~/lib/components';
-	import { fetchGithub, getAppVersion, storage } from '~/lib/helpers';
-	import { GearIcon } from '~/lib/icons';
-	import { settings } from '~/lib/stores';
-	import type { GithubRelease } from '~/lib/types';
+	import { IconButton, Modal, ScrollbarContainer, Separator, Tooltip } from '$lib/components';
+	import { fetchGithub, storage } from '$lib/features';
+	import { getAppVersion } from '$lib/helpers';
+	import { GearIcon } from '$lib/icons';
+	import { settings } from '$lib/stores';
+	import type { GithubRelease } from '$lib/types';
 	import Accounts from './accounts';
 	import App from './App.svelte';
 	import GithubSettings from './GithubSettings.svelte';
@@ -47,7 +48,7 @@
 			name: 'App',
 			strong: !!updateAvailable,
 			component: App,
-			props: { updateAvailable }
+			props: { updateAvailable, checkUpdate }
 		}
 	] as Tabs;
 
@@ -55,15 +56,19 @@
 	const gitlabUser = $page.data.session?.gitlabUser;
 
 	// Check if an update is available every 30 min
-	const interval = setInterval(async () => {
-		if (!window.__TAURI__) return;
+	const interval = setInterval(checkUpdate, 1800000);
+
+	async function checkUpdate() {
+		if (!window.__TAURI__) return false;
 
 		const release = await fetchGithub<GithubRelease>('repos/colinlienard/gitlight/releases/latest');
 		const latest = release.tag_name.split('v')[1];
-		if (latest !== getAppVersion()) {
+		const canUpdate = latest !== getAppVersion();
+		if (canUpdate) {
 			updateAvailable = latest;
 		}
-	}, 1800000);
+		return canUpdate;
+	}
 
 	function handleKeyDown(event: KeyboardEvent) {
 		if (!browser) return;

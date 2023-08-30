@@ -22,7 +22,9 @@ export type NotificationData = {
 	pinned: boolean;
 	done: boolean;
 	isNew: boolean;
+	muted: boolean;
 	author?: User;
+	creator?: User;
 	title: string;
 	description: string;
 	priority?: {
@@ -64,6 +66,8 @@ export type SavedNotifications = Array<{
 	pinned: boolean;
 	unread: boolean;
 	done: boolean;
+	isNew: boolean;
+	muted: boolean;
 	time: string;
 	previously?: NotificationData['previously'];
 }>;
@@ -75,6 +79,7 @@ export type WatchedRepo = {
 	ownerAvatar: string;
 	number: number;
 	active: boolean;
+	muted: boolean;
 };
 
 export type WatchedPerson = {
@@ -82,12 +87,12 @@ export type WatchedPerson = {
 	avatar: string;
 	number: number;
 	active: boolean;
+	muted: boolean;
 	bot?: boolean;
 };
 
 export type Settings = {
 	activateNotifications: boolean;
-	pushNotificationFromUser: boolean;
 	showNotificationsSyncTimer: boolean;
 	readWhenOpenInBrowser: boolean;
 	readWhenPin: boolean;
@@ -103,6 +108,8 @@ export type Settings = {
 	prioritySorting: boolean;
 	showPriority: boolean;
 	providerView: 'github' | 'gitlab' | 'both';
+	showPersonsAsCreators: boolean;
+	applyFiltersForDone: boolean;
 };
 
 export type Priority = {

@@ -1,5 +1,4 @@
 import { page } from '$app/stores';
-import { getDiscussionUrl } from '~/lib/helpers';
 import {
 	ClosedIssueIcon,
 	CommitIcon,
@@ -8,8 +7,8 @@ import {
 	ReleaseIcon,
 	WorkflowFailIcon,
 	WorkflowSuccessIcon
-} from '~/lib/icons';
-import { error, settings } from '~/lib/stores';
+} from '$lib/icons';
+import { error, settings } from '$lib/stores';
 import type {
 	GithubComment,
 	GithubCommit,
@@ -23,12 +22,13 @@ import type {
 	Priority,
 	SavedNotifications,
 	User
-} from '~/lib/types';
+} from '$lib/types';
 import { fetchGithub } from './fetchGithub';
-import { getIssueIcon, getPullRequestIcon } from './getIcon';
-import { cleanSpecifier, prioritiesLabel } from './priorities';
-import { removeMarkdownSymbols } from './removeMarkdownSymbols';
+import { getDiscussionUrl } from './getGithubDiscussionData';
 import { storage } from './storage';
+import { getIssueIcon, getPullRequestIcon } from '../helpers/getIcon';
+import { cleanSpecifier, prioritiesLabel } from '../helpers/priorities';
+import { removeMarkdownSymbols } from '../helpers/removeMarkdownSymbols';
 
 type PullRequestEvent = {
 	author: {
@@ -43,7 +43,7 @@ type PullRequestEvent = {
 
 type FetchOptions = Parameters<typeof fetchGithub>[1];
 
-export async function createNotificationData(
+export async function createGithubNotificationData(
 	githubNotification: GithubNotification,
 	savedNotifications: SavedNotifications,
 	firstTime: boolean
@@ -53,8 +53,10 @@ export async function createNotificationData(
 		? savedNotifications.find((n) => n.id === id)
 		: undefined;
 	const pinned = previous?.pinned || false;
-	const unread = isUnread || previous?.unread || false;
+	const muted = previous?.muted || false;
+	const unread = (muted ? previous?.unread : isUnread || previous?.unread) || false;
 	const done = !isUnread ? previous?.done || false : false;
+	const isNew = muted ? false : isUnread;
 	const [owner, repo] = repository.full_name.split('/');
 
 	// Get Personal Access Tokens
@@ -82,7 +84,8 @@ export async function createNotificationData(
 		pinned,
 		unread,
 		done,
-		isNew: isUnread,
+		isNew,
+		muted,
 		reason,
 		time: updated_at,
 		title: subject.title,
@@ -158,6 +161,7 @@ export async function createNotificationData(
 			value = {
 				...common,
 				author,
+				creator: { login: user.login, avatar: user.avatar_url, bot: user.type === 'Bot' },
 				description,
 				icon: getIssueIcon(data as GithubIssue),
 				opened: state === 'open',
@@ -241,6 +245,7 @@ export async function createNotificationData(
 			value = {
 				...common,
 				author,
+				creator: { login: user.login, avatar: user.avatar_url, bot: user.type === 'Bot' },
 				description,
 				icon: getPullRequestIcon(data as GithubPullRequest),
 				opened: state === 'open',
@@ -270,31 +275,36 @@ export async function createNotificationData(
 		}
 
 		case 'Discussion': {
-			const data = await getDiscussionUrl(githubNotification).then(({ url, latestCommentEdge }) => {
-				if (!latestCommentEdge) {
-					return {
-						description: 'New activity on discussion'
-					};
-				}
+			const data = await getDiscussionUrl(githubNotification);
+			let { url } = data;
+			const { latestCommentEdge } = data;
+			let description: string;
+			let author;
+			if (!latestCommentEdge) {
+				description = 'New activity on discussion';
+			} else {
 				url += '#discussioncomment-' + latestCommentEdge.node.databaseId;
-				const author = latestCommentEdge.node.author;
-				return {
-					author: {
-						login: author.login,
-						avatar: author.avatarUrl,
-						bot: author.__typename === 'Bot'
-					},
-					description: commentBodyToDescription(latestCommentEdge.node.bodyText),
-					url
+				author = latestCommentEdge.node.author;
+				author = {
+					login: author.login,
+					avatar: author.avatarUrl,
+					bot: author.__typename === 'Bot'
 				};
-			});
+				description = commentBodyToDescription(latestCommentEdge.node.bodyText);
+			}
+
 			value = {
 				...common,
-				...data,
-				icon: DiscussionIcon
+				author,
+				description,
+				url,
+				icon: DiscussionIcon,
+				previously:
+					previous?.description !== description ? previous : previous?.previously || undefined
 			};
 			break;
 		}
+
 		case 'CheckSuite': {
 			const splited = subject.title.split(' ');
 			const workflowName = splited[0];

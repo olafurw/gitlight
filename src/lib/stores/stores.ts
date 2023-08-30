@@ -6,7 +6,7 @@ import type {
 	TypeFilters,
 	WatchedPerson,
 	WatchedRepo
-} from '~/lib/types';
+} from '$lib/types';
 
 export const filteredNotifications = writable<NotificationData[]>([]);
 
@@ -31,7 +31,6 @@ export const loading = writable<boolean>(true);
 
 export const settings = writable<Settings>({
 	activateNotifications: true,
-	pushNotificationFromUser: true,
 	showNotificationsSyncTimer: true,
 	readWhenOpenInBrowser: false,
 	readWhenPin: false,
@@ -43,7 +42,9 @@ export const settings = writable<Settings>({
 	pats: [],
 	prioritySorting: true,
 	showPriority: true,
-	providerView: 'both'
+	providerView: 'both',
+	showPersonsAsCreators: false,
+	applyFiltersForDone: false
 });
 
 export const largeScreen = writable<boolean>(true);

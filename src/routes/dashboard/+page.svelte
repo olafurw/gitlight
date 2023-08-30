@@ -16,11 +16,18 @@
 		Settings,
 		Sidebar,
 		Tooltip
-	} from '~/lib/components';
-	import { createNotificationData, fetchGithub, storage } from '~/lib/helpers';
-	import { GithubIcon, GitlabIcon, Logo, RefreshIcon } from '~/lib/icons';
-	import { error, githubNotifications, loading, savedNotifications, settings } from '~/lib/stores';
-	import type { GithubNotification, NotificationData } from '~/lib/types';
+	} from '$lib/components';
+	import { createGithubNotificationData, fetchGithub, storage } from '$lib/features';
+	import { GithubIcon, GitlabIcon, Logo, RefreshIcon } from '$lib/icons';
+	import {
+		error,
+		filteredNotifications,
+		githubNotifications,
+		loading,
+		savedNotifications,
+		settings
+	} from '$lib/stores';
+	import type { GithubNotification, NotificationData } from '$lib/types';
 
 	const githubUser = $page.data.session?.githubUser;
 	const gitlabUser = $page.data.session?.gitlabUser;
@@ -78,7 +85,11 @@
 			newNotifications = (
 				await Promise.all(
 					notifications.map((notification) =>
-						createNotificationData(notification, $savedNotifications, !$githubNotifications.length)
+						createGithubNotificationData(
+							notification,
+							$savedNotifications,
+							!$githubNotifications.length
+						)
 					)
 				)
 			).filter((item): item is NotificationData => !!item);
@@ -92,15 +103,26 @@
 
 		if (!newNotifications.length) return;
 
+		const firstFetch = !$githubNotifications.length;
+
+		// Remove duplicates and add new notifications to the store
+		$githubNotifications = [
+			...newNotifications,
+			...$githubNotifications.filter((item) => !newNotifications.find((n) => n.id === item.id))
+		];
+
+		if (!window.__TAURI__ || firstFetch || !$settings.activateNotifications) return;
+
 		// Send push notification and update tray icon
-		const pushNotification = newNotifications[0];
-		if (
-			window.__TAURI__ &&
-			$githubNotifications.length &&
-			pushNotification.unread &&
-			$settings.activateNotifications &&
-			($settings.pushNotificationFromUser || pushNotification.author?.login !== githubUser?.login)
-		) {
+		const watchedPersons = storage.get('github-watched-persons');
+		const watchedRepos = storage.get('github-watched-repos');
+		const unmutedNotifications = newNotifications.filter(({ author, repoId }) => {
+			const watchedPerson = watchedPersons?.find(({ login }) => login === author?.login);
+			const watchedRepo = watchedRepos?.find(({ id }) => id === repoId);
+			return !watchedPerson?.muted && !watchedRepo?.muted;
+		});
+		const pushNotification = unmutedNotifications[0];
+		if (pushNotification?.unread && !pushNotification?.muted) {
 			const { author, title, description } = pushNotification;
 			sendNotification({
 				title: `${author ? `${author.login} ` : ''}${description.replace(/(\*|_)/g, '')}`,
@@ -108,12 +130,6 @@
 			});
 			invoke('update_tray', { newIcon: true });
 		}
-
-		// Remove duplicates and add new notifications to the store
-		$githubNotifications = [
-			...newNotifications,
-			...$githubNotifications.filter((item) => !newNotifications.find((n) => n.id === item.id))
-		];
 	}
 
 	function refetch() {
@@ -131,13 +147,15 @@
 	$: if (mounted && $githubNotifications.length) {
 		// Save events ids to storage
 		const toSave = $githubNotifications.map(
-			({ id, description, author, pinned, unread, done, time, previously }) => ({
+			({ id, description, author, pinned, unread, done, isNew, muted, time, previously }) => ({
 				id,
 				description,
 				author,
 				pinned,
 				unread,
 				done,
+				isNew,
+				muted,
 				time,
 				previously
 			})
@@ -147,8 +165,8 @@
 
 		// Update menu bar
 		if (window.__TAURI__) {
-			const pinned = $githubNotifications.filter(({ pinned }) => pinned);
-			const unread = $githubNotifications.filter(
+			const pinned = $filteredNotifications.filter(({ pinned }) => pinned);
+			const unread = $filteredNotifications.filter(
 				({ pinned, unread, done }) => !pinned && unread && !done
 			);
 			invoke('update_tray', {

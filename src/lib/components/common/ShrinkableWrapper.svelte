@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { cubicInOut } from 'svelte/easing';
-	import { SmallArrowIcon } from '~/lib/icons';
+	import { SmallArrowIcon } from '$lib/icons';
 
 	export let shrinked = false;
 
@@ -54,7 +54,7 @@
 		gap: 0.25rem;
 		transition: margin variables.$transition;
 
-		&.shrinked :global(svg) {
+		&.shrinked .arrow-button :global(svg) {
 			rotate: -90deg;
 		}
 
